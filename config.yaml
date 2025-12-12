@@ -1,0 +1,17 @@
+credentials:
+  usernames:
+    Srinithi:
+      email: srinithir2004@gmail.com
+      name: Srinithi Ravi
+      password: 'sri123'
+    Harshini:
+      email: harshu@gmail.com
+      name: Harshini Sree VJ
+      password: 'harshu123'
+cookie:
+  expiry_days: 30
+  key: 'some_random_signature_key'
+  name: 'event_pulse_cookie'
+preauthorized:
+  emails:
+  - melsby@gmail.com

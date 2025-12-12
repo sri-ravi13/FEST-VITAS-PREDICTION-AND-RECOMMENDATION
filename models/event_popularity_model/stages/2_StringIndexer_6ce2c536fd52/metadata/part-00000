@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.StringIndexerModel","timestamp":1761805072922,"sparkVersion":"3.5.6","uid":"StringIndexer_6ce2c536fd52","paramMap":{"outputCol":"venue_index","handleInvalid":"keep","inputCol":"venue_name"},"defaultParamMap":{"outputCol":"StringIndexer_6ce2c536fd52__output","handleInvalid":"error","stringOrderType":"frequencyDesc"}}
