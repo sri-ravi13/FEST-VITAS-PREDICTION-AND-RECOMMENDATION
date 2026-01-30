@@ -4,14 +4,11 @@ import json
 from datetime import datetime, timedelta, timezone
 from kafka import KafkaProducer
 
-# --- Configuration ---
 API_KEY = '2dvrz11AAYNGDNiOft9zcwXD8T65cS9I'
 BASE_URL = 'https://app.ticketmaster.com/discovery/v2/events.json'
 
-# <--- CHANGED: Expanded the list of segments to search, including Sports --->
 SEGMENTS_TO_SEARCH = ['Music', 'Sports', 'Arts & Theatre', 'Film', 'Comedy', 'Family', 'Miscellaneous']
 
-# --- Kafka Producer Setup ---
 try:
     producer = KafkaProducer(
         bootstrap_servers=['localhost:9092'],
@@ -31,7 +28,7 @@ def run_producer_continuously():
         print("Exiting: Kafka producer is not available.")
         return
 
-    # <--- CHANGED: Added an infinite loop to run the producer continuously --->
+
     while True:
         print("\n=================================================")
         print(f"=== Starting new fetch cycle at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===")
@@ -44,17 +41,14 @@ def run_producer_continuously():
         producer.flush()
         print("\nAll tasks for this cycle are complete. Producer has flushed all messages.")
 
-        # <--- CHANGED: Wait for 1 hour (3600 seconds) before starting the next cycle --->
+
         wait_duration_seconds = 3600
         print(f"--- Sleeping for {wait_duration_seconds / 60} minutes before the next cycle... ---")
         time.sleep(wait_duration_seconds)
 
 
 def fetch_and_send_events(segment_name):
-    """
-    Fetches events for a segment and sends each one to a Kafka topic.
-    (This function's internal logic remains the same)
-    """
+
     start_date = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
     end_date = (datetime.now(timezone.utc) + timedelta(days=60)).strftime('%Y-%m-%dT%H:%M:%SZ')
     
@@ -78,7 +72,7 @@ def fetch_and_send_events(segment_name):
             if current_page == 0:
                 total_pages = data.get('page', {}).get('totalPages', 1)
                 if total_pages == 0: break
-                if total_pages > 5: total_pages = 5 # Limit to 5 pages per segment to be API-friendly
+                if total_pages > 5: total_pages = 5
 
             if '_embedded' in data:
                 for event in data['_embedded']['events']:
@@ -95,9 +89,7 @@ def fetch_and_send_events(segment_name):
             break
 
 def process_event_data(event):
-    """
-    (This function remains the same)
-    """
+
     price_range = event.get('priceRanges', [{}])[0]
     min_price = price_range.get('min')
     max_price = price_range.get('max')
@@ -123,5 +115,5 @@ def process_event_data(event):
     }
 
 if __name__ == "__main__":
-    # <--- CHANGED: Call the new continuous function --->
+
     run_producer_continuously()

@@ -1,8 +1,6 @@
 import streamlit as st
 import yaml
 from yaml.loader import SafeLoader
-
-# 1. PAGE CONFIGURATION
 st.set_page_config(
     page_title="Event Horizon",
     page_icon="🎟️",
@@ -10,7 +8,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CUSTOM STYLING ---
 st.markdown("""
 <style>
 /* General Body Styles */
@@ -78,12 +75,7 @@ div.stButton > button:hover {
 }
 </style>
 """, unsafe_allow_html=True)
-
-# Font Awesome for icons
 st.markdown('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">', unsafe_allow_html=True)
-
-
-# 2. INITIALIZE SESSION STATE
 if 'authentication_status' not in st.session_state:
     st.session_state['authentication_status'] = None
 if 'name' not in st.session_state:
@@ -91,7 +83,7 @@ if 'name' not in st.session_state:
 if 'username' not in st.session_state:
     st.session_state['username'] = None
 
-# 3. LOAD USER CREDENTIALS
+
 try:
     with open('config.yaml') as file:
         config = yaml.load(file, Loader=SafeLoader)
@@ -103,12 +95,12 @@ except Exception as e:
     st.error(f"Error loading config.yaml: {e}")
     st.stop()
 
-# 4. DISPLAY LOGIN/WELCOME UI
+
 st.title("Welcome to Event Horizon 🎟️")
 st.markdown("Your compass for trending events.")
 st.divider()
 
-# --- LOGIN SCREEN ---
+
 if not st.session_state['authentication_status']:
     col1, col2 = st.columns([1.2, 1], gap="large")
 

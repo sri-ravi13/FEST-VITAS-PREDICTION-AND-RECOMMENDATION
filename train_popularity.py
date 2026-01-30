@@ -5,13 +5,9 @@ from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
 from pyspark.ml.classification import GBTClassifier
 from pyspark.ml import Pipeline
 from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator
-
-# --- FIX: Point to the EXACT JAR file and add a pre-flight check ---
 jar_filename = "mongo-spark-connector_2.12-10.1.0-all.jar"
 spark_jars_path_str = r"C:\spark\spark-3.5.6-bin-hadoop3\jars"
 full_jar_path = os.path.join(spark_jars_path_str, jar_filename)
-
-# Pre-flight check to provide a clear error message
 if not os.path.exists(full_jar_path):
     print("=" * 60)
     print(f"FATAL ERROR: The specified JAR file was not found!")
@@ -19,13 +15,7 @@ if not os.path.exists(full_jar_path):
     print("Please make sure the filename is correct and the file is in the folder.")
     print("=" * 60)
     exit()
-
-# --- FIX: Convert the Windows path to a proper file URI for Java/Spark ---
-# This is the most reliable way to pass local JARs.
 jars_uri_string = "file:///" + full_jar_path.replace("\\", "/")
-
-
-# --- Spark Configuration for MongoDB ---
 MONGO_SPARK_PACKAGE = "org.mongodb.spark:mongo-spark-connector_2.12:3.0.2"
 os.environ['PYSPARK_SUBMIT_ARGS'] = f'--packages {MONGO_SPARK_PACKAGE} pyspark-shell'
 MONGO_URI = "mongodb://127.0.0.1:27017"
@@ -42,8 +32,6 @@ spark = SparkSession.builder \
 
 print("Spark Session created successfully!")
 spark.sparkContext.setLogLevel("WARN")
-
-# --- 1. Load Data from MongoDB ---
 print(f"--- Loading data from MongoDB collection: {MONGO_COLLECTION} ---")
 df = spark.read.format("mongo").load()
 
@@ -63,9 +51,6 @@ if df.count() < 50:
     exit()
 
 print(f"Successfully loaded {df.count()} events from the database.")
-
-
-# --- 2. Advanced Feature Engineering ---
 print("--- Starting advanced feature engineering ---")
 
 name_counts = df.groupBy("name").agg(count("id").alias("event_name_count"))
@@ -84,9 +69,6 @@ if price_df.count() == 0:
 price_threshold = price_df.approxQuantile("avg_price", [0.7], 0.01)[0]
 df_featured = df_featured.withColumn("label", when(col("avg_price") >= price_threshold, 1).otherwise(0))
 print(f"Defined high-risk label for events with avg_price >= ${price_threshold:.2f}")
-
-
-# --- 3. ML Pipeline Setup ---
 segment_indexer = StringIndexer(inputCol="segment", outputCol="segment_index", handleInvalid="keep")
 genre_indexer = StringIndexer(inputCol="genre", outputCol="genre_index", handleInvalid="keep")
 venue_indexer = StringIndexer(inputCol="venue_name", outputCol="venue_index", handleInvalid="keep")
@@ -112,8 +94,6 @@ pipeline = Pipeline(stages=[
     assembler,
     gbt
 ])
-
-# --- 4. Handle Class Imbalance with Oversampling ---
 print("--- Balancing dataset with oversampling ---")
 minority_df = df_featured.filter(col("label") == 1)
 majority_df = df_featured.filter(col("label") == 0)
@@ -131,9 +111,6 @@ else:
     balanced_df = majority_df
 
 print(f"Dataset balanced. Original minority count: {minority_df.count()}, New count: {balanced_df.filter(col('label') == 1).count()}")
-
-
-# --- 5. Train, Evaluate, and Save the Model ---
 (trainingData, testData) = balanced_df.randomSplit([0.8, 0.2], seed=42)
 print(f"Training data count: {trainingData.count()}, Test data count: {testData.count()}")
 

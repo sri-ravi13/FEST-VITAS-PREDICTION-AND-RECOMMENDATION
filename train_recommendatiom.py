@@ -30,18 +30,11 @@ spark = SparkSession.builder \
 
 print("Spark Session created successfully!")
 spark.sparkContext.setLogLevel("WARN")
-
-# --- 1. Load Data and Create Content Profiles ---
 print(f"--- Loading data from MongoDB collection: {MONGO_COLLECTION} ---")
-# --- FIX: Use the full format name for the older 3.0.2 connector ---
 df = spark.read.format("com.mongodb.spark.sql.DefaultSource").load() \
     .select("id", "name", "segment", "genre", "venue_name", "city", "state").na.drop()
-
-# Create a single "profile" string from key attributes
 df_profile = df.withColumn("profile", concat_ws(" ", col("segment"), col("genre"), col("venue_name"), col("city"), col("state")))
 print("Created content profiles for events.")
-
-# --- 2. TF-IDF Vectorization Pipeline ---
 tokenizer = Tokenizer(inputCol="profile", outputCol="words")
 hashingTF = HashingTF(inputCol="words", outputCol="rawFeatures", numFeatures=2**12)
 idf = IDF(inputCol="rawFeatures", outputCol="idf_features")
@@ -54,8 +47,6 @@ print("Vectorized event profiles using TF-IDF.")
 
 brp = BucketedRandomProjectionLSH(inputCol="features", outputCol="hashes", bucketLength=2.0, numHashTables=5)
 lsh_model = brp.fit(vectorized_df)
-
-# Find the top 10 most similar items for each item
 print("Finding top 10 similar events for each event using LSH...")
 similar_items = lsh_model.approxSimilarityJoin(vectorized_df, vectorized_df, 1.0, "distance") \
     .filter("datasetA.id != datasetB.id") \
@@ -66,19 +57,13 @@ similar_items = lsh_model.approxSimilarityJoin(vectorized_df, vectorized_df, 1.0
         col("datasetB.name").alias("similar_name"),
         col("distance")
     ).orderBy("id", "distance")
-
-# Group the results to get a list of recommendations for each event
 recommendations = similar_items.groupBy("id", "name").agg(
     collect_list(
         struct(col("similar_id"), col("similar_name"))
     ).alias("recommendations_list")
 )
-
-# Limit to top 10 recommendations
 recommendations = recommendations.withColumn("recommendations", slice(col("recommendations_list"), 1, 10)) \
                                  .select("id", "name", "recommendations")
-
-# --- 4. Save the Recommendation Data ---
 output_path = "models/event_recommender_data"
 recommendations.write.mode("overwrite").parquet(output_path)
 print(f"\n--- Recommendation data successfully saved to: {output_path} ---")

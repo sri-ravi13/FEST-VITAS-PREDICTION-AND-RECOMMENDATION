@@ -2,12 +2,10 @@ import time
 from pymongo import MongoClient
 from datetime import datetime, timedelta, timezone
 
-# --- Configuration ---
 MONGO_URI = "mongodb://127.0.0.1:27017/"
-CHECK_INTERVAL_SECONDS = 300 # 5 minutes
-REMINDER_DAYS_BEFORE_EVENT = 7 # Notify if event is within 7 days
+CHECK_INTERVAL_SECONDS = 300
+REMINDER_DAYS_BEFORE_EVENT = 7 
 
-# --- MongoDB Connection Setup ---
 client = MongoClient(MONGO_URI)
 db = client["event_pulse_db"]
 events_collection = db["events"]
@@ -15,7 +13,6 @@ users_collection = db["users"]
 notifications_collection = db["notifications"]
 
 def check_new_events_for_prefs():
-    """Checks for newly ingested events that match user segment preferences."""
     print("--- Checking for new events based on preferences...")
     all_users = list(users_collection.find({}, {"_id": 0, "username": 1, "favorite_segments": 1}))
     if not all_users:
@@ -38,7 +35,7 @@ def check_new_events_for_prefs():
             
         for event in new_events:
             if event.get("segment") in prefs:
-                # Check if this specific type of notification already exists to avoid duplicates
+
                 if not notifications_collection.find_one({"username": username, "event_id": event.get("id"), "notification_type": "new_event_match"}):
                     new_notification = {
                         "username": username, "event_id": event.get("id"), "event_name": event.get("name"),
@@ -51,9 +48,8 @@ def check_new_events_for_prefs():
 
 
 def check_favorite_event_reminders():
-    """Checks for users' favorited events that are happening soon."""
     print("--- Checking for upcoming favorited events...")
-    # Find all users who have at least one favorite event
+
     all_users = list(users_collection.find({"favorite_event_ids": {"$exists": True, "$ne": []}}))
     if not all_users:
         print("No users with favorited events found. Skipping reminder check.")
@@ -67,7 +63,7 @@ def check_favorite_event_reminders():
         if not favorite_ids:
             continue
 
-        # Fetch all favorited events for the user
+
         fav_events = list(events_collection.find({"id": {"$in": favorite_ids}}))
         
         for event in fav_events:
@@ -78,9 +74,9 @@ def check_favorite_event_reminders():
                 event_date = datetime.strptime(event_date_str, "%Y-%m-%d").date()
                 days_until = (event_date - today).days
 
-                # Check if the event is within the reminder window (and not in the past)
+
                 if 0 <= days_until <= REMINDER_DAYS_BEFORE_EVENT:
-                    # Check if a reminder for this event has already been sent to prevent spam
+
                     if not notifications_collection.find_one({"username": username, "event_id": event.get("id"), "notification_type": "date_approaching"}):
                         if days_until > 0:
                             message = f"Reminder: Your favorited event '{event.get('name')}' is in {days_until} days!"
@@ -96,16 +92,15 @@ def check_favorite_event_reminders():
                         notifications_collection.insert_one(new_notification)
                         print(f"  -> Created 'Date Approaching' notification for user '{username}' for event '{event.get('name')}'")
             except (ValueError, TypeError):
-                # Ignore events with malformed dates and continue
+
                 continue
 
 def run_notification_engine():
-    """Main loop to run all notification checks."""
     print("Notification engine connected to MongoDB.")
     while True:
         print(f"\n--- Running notification cycle at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
         
-        # Run all different checks in order
+
         check_new_events_for_prefs()
         check_favorite_event_reminders()
 

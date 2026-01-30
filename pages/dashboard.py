@@ -7,15 +7,8 @@ from pyspark.sql.functions import to_date, datediff, current_date, col, when, co
 import os
 from datetime import datetime, timezone
 
-# ==============================================================================
-# === PAGE CONFIGURATION =======================================================
-# ==============================================================================
 st.set_page_config(page_title="Event Horizon Dashboard", page_icon="🎟️", layout="wide")
 
-
-# ==============================================================================
-# === UI ENHANCEMENT: CUSTOM CSS ===============================================
-# ==============================================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
@@ -24,13 +17,11 @@ st.markdown("""
     html, body, [class*="st-"] {
         font-family: 'Poppins', sans-serif;
     }
-
-    /* --- KPI Metrics Styling --- */
     .kpi-container {
         display: flex;
         justify-content: space-around;
         padding: 1.5rem;
-        background-color: #0d1b2a; /* Darker navy blue */
+        background-color: 
         border-radius: 15px;
         margin-bottom: 2rem;
         box-shadow: 0 10px 30px -15px rgba(0,0,0,0.5);
@@ -42,11 +33,9 @@ st.markdown("""
         text-align: center;
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
-
-    /* --- Event Card Styling --- */
     .event-card {
-        background-color: #1b263b; /* Slightly lighter navy */
-        border: 1px solid #415a77;
+        background-color: 
+        border: 1px solid 
         border-radius: 15px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
@@ -55,17 +44,17 @@ st.markdown("""
     .event-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-        border-color: #778da9;
+        border-color: 
     }
     .event-card h3 {
-        color: #e0e1dd;
+        color: 
         margin-top: 0;
         margin-bottom: 0.5rem;
         font-weight: 600;
     }
     .event-card .details-bar {
         font-size: 0.9rem;
-        color: #778da9;
+        color: 
         margin-top: 0.5rem;
         margin-bottom: 1rem;
     }
@@ -77,44 +66,37 @@ st.markdown("""
         color: white;
         display: inline-block;
     }
-    .demand-high { background-color: #e63946; }
-    .demand-medium { background-color: #fca311; }
-    .demand-low { background-color: #2a9d8f; }
-
-    /* --- Notification Styling in Sidebar --- */
+    .demand-high { background-color: 
+    .demand-medium { background-color: 
+    .demand-low { background-color: 
+            
     .notification-item {
         background-color: rgba(255, 255, 255, 0.08);
         padding: 0.75rem;
         border-radius: 8px;
         margin-bottom: 0.5rem;
-        border-left: 4px solid #fca311;
+        border-left: 4px solid 
     }
     .notification-item .event-name {
         font-weight: 600;
-        color: #f1faee;
+        color: 
     }
     .notification-item .message {
         font-size: 0.85rem;
-        color: #a8dadc;
+        color: 
         font-style: italic;
     }
 
 </style>
 """, unsafe_allow_html=True)
 
-
-# ==============================================================================
-# === CORE BACKEND FUNCTIONS (No Changes Needed Here) ==========================
-# ==============================================================================
-
-# --- Authentication Check ---
 if not st.session_state.get("authentication_status"):
     st.error("You must be logged in to view this page. Please return to the Home page to log in.")
     st.stop()
 
 @st.cache_resource
 def get_spark_session():
-    """Initializes and returns a Spark Session."""
+    
     jar_filename = "mongo-spark-connector_2.12-10.1.0-all.jar"
     spark_jars_path = r"C:\spark\spark-3.5.6-bin-hadoop3\jars"
     full_jar_path = os.path.join(spark_jars_path, jar_filename)
@@ -127,7 +109,7 @@ def get_spark_session():
 
 @st.cache_resource
 def load_models():
-    """Loads all trained ML models."""
+    
     try:
         popularity_model = PipelineModel.load("models/event_popularity_model")
     except Exception:
@@ -142,12 +124,12 @@ def load_models():
 
 @st.cache_resource
 def get_mongo_client():
-    """Establishes connection to MongoDB."""
+    
     return MongoClient("mongodb://127.0.0.1:27017/")
 
 @st.cache_data(ttl=300)
 def load_and_predict_all(_spark, _pop_model, _demand_model):
-    """Loads all event data and runs predictions."""
+    
     client = get_mongo_client()
     db = client["event_pulse_db"]
     events_list = list(db["events"].find({}, {"_id": 0}))
@@ -179,7 +161,7 @@ def load_and_predict_all(_spark, _pop_model, _demand_model):
 
 @st.cache_data(ttl=300)
 def load_recommendations_lookup(_spark):
-    """Loads pre-computed recommendations."""
+    
     try:
         recs_df = _spark.read.parquet("models/event_recommender_data")
         recs_list = recs_df.select("id", col("recommendations.similar_id").alias("similar_ids")).collect()
@@ -187,10 +169,6 @@ def load_recommendations_lookup(_spark):
     except Exception:
         st.warning("Recommendation data not found.", icon="⚠️")
         return {}
-
-# ==============================================================================
-# === INITIALIZE & LOAD ALL DATA ===============================================
-# ==============================================================================
 
 spark = get_spark_session()
 popularity_model, demand_model = load_models()
@@ -205,12 +183,8 @@ user_favorites = user_data.get("favorite_event_ids", []) if user_data else []
 df_predictions = load_and_predict_all(spark, popularity_model, demand_model)
 recommendation_lookup = load_recommendations_lookup(spark)
 
-# ==============================================================================
-# === HELPER FUNCTIONS =========================================================
-# ==============================================================================
-
 def toggle_favorite(event_id, event_name, is_high_demand):
-    """Adds or removes an event from the user's favorites list."""
+    
     username = st.session_state["username"]
     if event_id in user_favorites:
         users_collection.update_one({"username": username}, {"$pull": {"favorite_event_ids": event_id}})
@@ -226,14 +200,10 @@ def toggle_favorite(event_id, event_name, is_high_demand):
             st.toast("🔥 Reminder sent for this high-demand event!")
 
 def get_demand_tag(score):
-    """Returns a styled HTML tag based on the demand score."""
+    
     if score >= 60: return '<span class="demand-tag demand-high">High Risk</span>'
     if score >= 35: return '<span class="demand-tag demand-medium">Medium Demand</span>'
     return '<span class="demand-tag demand-low">Low Demand</span>'
-
-# ==============================================================================
-# === SIDEBAR: SEARCH, FILTERS & NOTIFICATIONS =================================
-# ==============================================================================
 
 with st.sidebar:
     st.header(f"Welcome, {st.session_state['name']}!")
@@ -272,10 +242,6 @@ with st.sidebar:
             st.toast("Notifications cleared!")
             st.rerun()
 
-# ==============================================================================
-# === MAIN DASHBOARD UI ========================================================
-# ==============================================================================
-
 st.title("🎟️ Event Horizon Dashboard")
 st.markdown("Your personalized compass for trending events. We predict demand so you never miss out.")
 
@@ -283,7 +249,6 @@ if df_predictions.empty:
     st.warning("No event data found. Please ensure your data ingestion pipeline is running.")
     st.stop()
 
-# --- 1. Personalization Logic ---
 user_prefs = users_collection.find_one({"username": st.session_state["username"]})
 preferred_segments = user_prefs.get('favorite_segments', []) if user_prefs else []
 recommended_event_ids = set()
@@ -299,7 +264,6 @@ else:
 
 df_personalized = df_predictions[df_predictions['id'].isin(recommended_event_ids)].copy()
 
-# --- 2. Apply Sidebar Filters ---
 df_filtered = df_personalized[
     (df_personalized['avg_price'].between(price_range[0], price_range[1])) &
     (df_personalized['segment'].isin(segment_filter))
@@ -309,11 +273,8 @@ if search_term:
 
 df_display = df_filtered.drop_duplicates(subset=['id']).copy()
 
-# --- THIS IS THE CORRECTED LINE ---
 df_display.loc[:, 'demand_prediction'] = pd.to_numeric(df_display['demand_prediction'], errors='coerce').fillna(0)
 
-
-# --- KPI Metrics Header ---
 st.markdown('<div class="kpi-container">', unsafe_allow_html=True)
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -325,7 +286,6 @@ with col3:
     st.metric("Your Top Segment", top_segment)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# --- Tabbed Layout for Event Display ---
 if df_display.empty:
     st.info("No events match your current filters. Try adjusting your search!")
 else:
